@@ -2,7 +2,8 @@ package com.minh.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
-import static com.minh.util.CommonUtil.getBearerToken;
+
+import static com.minh.util.CommonUtil.*;
 
 
 @RestController
@@ -14,13 +15,15 @@ public class SimpleController {
     @GetMapping("/message")
     public String getMessage(HttpServletRequest httpServletRequest) {
         String token = getBearerToken(httpServletRequest);
-        return message;
+    //    String generatedToken = generateJwtToken( token);
+
+        return decodeJwtToken(token);
     }
 
     @PostMapping("/message")
-    public String updateMessage(@RequestBody String newMessage) {
-        message = newMessage;
-        return "Message updated!";
+    public String genToken(@RequestBody String newMessage) {
+
+        return generateJwtToken( newMessage);
     }
 
     @DeleteMapping("/message")
