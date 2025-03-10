@@ -16,7 +16,7 @@ public class RedisController {
     @PostMapping("/set-redis")
     public String setCache(@RequestParam String key, @RequestParam String value) {
         redisTemplate.opsForValue().set(key, value, 50000, TimeUnit.DAYS);
-        return "Saved!";
+        return "Saved successfully!";
     }
 
     @GetMapping("/get-redis")
