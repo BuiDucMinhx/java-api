@@ -3,7 +3,7 @@ package com.minh.controller;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
 
-import static com.minh.util.CommonUtil.*;
+import static com.minh.util.JwtUtil.*;
 
 
 @RestController
@@ -12,7 +12,8 @@ public class SimpleController {
 
     private String message = "Hello, World!";
 
-    @GetMapping("/message")
+
+    @GetMapping("/get")
     public String getMessage(HttpServletRequest httpServletRequest) {
         String token = getBearerToken(httpServletRequest);
     //    String generatedToken = generateJwtToken( token);
@@ -20,7 +21,7 @@ public class SimpleController {
         return decodeJwtToken(token);
     }
 
-    @PostMapping("/message")
+    @PostMapping("/gen")
     public String genToken(@RequestBody String newMessage) {
 
         return generateJwtToken( newMessage);
@@ -31,4 +32,6 @@ public class SimpleController {
         message = "Hello, World!";
         return "Message reset!";
     }
+
+
 }
