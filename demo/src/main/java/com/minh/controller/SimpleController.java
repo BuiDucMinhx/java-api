@@ -1,6 +1,7 @@
 package com.minh.controller;
 
 
+import com.minh.util.CommonUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,20 +14,10 @@ public class SimpleController {
 
     @GetMapping("/message")
     public String getMessage(HttpServletRequest request) {
-        // Get the Authorization header
-        String authHeader = request.getHeader("Authorization");
-
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            // Extract token after "Bearer "
-            String token = authHeader.substring(7);
-            System.out.println("Token: " + token);
-            return token;
-        } else {
-            return "No Bearer token found";
-        }
+        CommonUtil.getBearerToken(request);
 
 
-
+        return message;
 
     }
 
