@@ -3,12 +3,12 @@ package com.minh.controller;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.minh.util.RedisUtil;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.api.StatefulRedisConnection;
 import io.lettuce.core.api.sync.RedisCommands;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
-import java.io.File;
 import java.io.IOException;
 
 
@@ -16,21 +16,64 @@ import java.io.IOException;
 @RestController
 @RequestMapping("/api/v1")
 public class AreaController {
+    @Autowired
+    private RedisUtil redisUtil;
+
     private static final String REDIS_URI = "redis://localhost:6379";
+    private static final String GEO_JSON_COODINATES = "geo_json_data";
+    private static final String GEO_JSON_REGION = "geo_json_region_data";
 
 
-    @PostMapping("/setJson")
-    public String fetchData() throws IOException {
-        String geoJsonFile = "C:/Users/rongk/Downloads/custom.geo.json";
-        RedisClient redisClient = RedisClient.create(REDIS_URI);
-        ObjectMapper objectMapper = new ObjectMapper();
-        JsonNode root = objectMapper.readTree(new File(geoJsonFile));
-        String jsonString = objectMapper.writeValueAsString(root);
-        StatefulRedisConnection<String, String> connection =   redisClient.connect();
-        RedisCommands<String, String> syncCommands = connection.sync();
-        syncCommands.set("geo_json_data", jsonString);
+
+    @PostMapping("/setJson/{isRegion}")
+    public String fetchData(@PathVariable boolean isRegion) throws IOException {
+        String geoJsonFile = "C:/Users/rongk/Downloads/vn.json";
+        String geoJsonRegion = "C:/Users/rongk/Downloads/full_json_generated_data_vn_units.json";
+
+        if (isRegion) {
+            redisUtil.setDataRegion(geoJsonFile, GEO_JSON_COODINATES);
+        } else {
+            redisUtil.setDataRegion(geoJsonRegion, GEO_JSON_REGION);
+        }
 
         return "Save successfully";
+    }
+
+    @GetMapping("/getArea")
+    public String getArea(@RequestParam String searchName,
+                          @RequestParam String type) throws JsonProcessingException {
+        RedisClient redisClient = RedisClient.create(REDIS_URI);
+
+        StatefulRedisConnection<String, String> connection =   redisClient.connect();
+        RedisCommands<String, String> syncCommands = connection.sync();
+        ObjectMapper objectMapper = new ObjectMapper();
+        String geoJsonString = syncCommands.get(GEO_JSON_REGION);
+        JsonNode geoJson =  objectMapper.readTree(geoJsonString);
+
+        for (JsonNode node : geoJson) {
+            JsonNode districts = node.get("District");
+            if (!searchName.isEmpty() && node.get("NameEn").toPrettyString().toLowerCase().contains(searchName)
+                && type.equals(node.get("Type").toPrettyString().toLowerCase().replace("\"", ""))) {
+                return objectMapper.writeValueAsString(node);
+            }
+            for (JsonNode district : districts) {
+                JsonNode wards = district.get("Ward");
+                if (!searchName.isEmpty() && district.get("NameEn").toPrettyString().toLowerCase().contains(searchName)
+                    && type.equals(district.get("Type").toPrettyString().toLowerCase().replace("\"", ""))) {
+                    return objectMapper.writeValueAsString(district);
+                }
+
+                for (JsonNode ward : wards) {
+                    if (!searchName.isEmpty() && ward.get("NameEn").toPrettyString().toLowerCase().contains(searchName)
+                        && type.equals(ward.get("Type").toPrettyString().toLowerCase().replace("\"", ""))) {
+                        return objectMapper.writeValueAsString(ward);
+                    }
+                }
+
+            }
+        }
+
+        return  geoJsonString;
     }
 
     @GetMapping("/getJson")
@@ -41,7 +84,7 @@ public class AreaController {
         RedisCommands<String, String> syncCommands = connection.sync();
         ObjectMapper objectMapper = new ObjectMapper();
 
-        String geoJsonString = syncCommands.get("geo_json_data");
+        String geoJsonString = syncCommands.get(GEO_JSON_COODINATES);
         JsonNode geoJson = objectMapper.readTree(geoJsonString);
 
         String coodinates = "";
